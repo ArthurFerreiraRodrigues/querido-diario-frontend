@@ -5,20 +5,21 @@ export enum DownloadsLabels {
 
 export interface Download {
   value: string;
-  viewValue: DownloadsLabels,
+  viewValue: DownloadsLabels;
 }
 
 export interface Gazette {
   territory_id: string;
   date: string;
   url: string;
+  scraped_at: string;
   territory_name: string;
   state_code: string;
   excerpts: string[];
-  edition: string;
+  edition?: string;
   is_extra_edition: boolean;
   txt_url?: string;
-  downloads: Download[]
+  downloads: Download[];
 }
 
 export interface Theme {
