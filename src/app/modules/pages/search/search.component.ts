@@ -5,12 +5,21 @@ import { Observable, of } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { EnvService } from 'src/app/env.service';
 import { City } from 'src/app/interfaces/city';
-import { GazetteResponse } from 'src/app/interfaces/gazette';
+import { Gazette, GazetteResponse } from 'src/app/interfaces/gazette';
 import { Level } from 'src/app/interfaces/level';
 import { LevelDescription, Pagination, SearchResponse } from 'src/app/interfaces/search';
 import { Territory } from 'src/app/interfaces/territory';
 import { GazetteService } from 'src/app/services/gazette/gazette.service';
 import { TerritoryService } from 'src/app/services/territory/territory.service';
+
+export interface DownloadSelection {
+  selectAll: boolean;
+  gazettes: SelectedGazette[];
+}
+
+export interface SelectedGazette extends Gazette {
+  selected: boolean;
+}
 
 @Component({
   selector: 'app-search',
@@ -43,6 +52,8 @@ export class SearchComponent implements OnInit {
   gazetteResponse: GazetteResponse | null = null;
 
   pagination: Pagination = { itemsPerPage: 10, currentPage: 1 };
+
+  selectedGazettes: Gazette[] = [];
 
   level$: Observable<Level | null> = of(null);
 
@@ -127,6 +138,7 @@ export class SearchComponent implements OnInit {
               totalItems,
             };
             this.pagination = pagination;
+            this.setDownloadSelection(res.gazettes);
           },
           () => {
             this.gazetteResponse = { total_gazettes: 0 } as GazetteResponse;
@@ -172,5 +184,73 @@ export class SearchComponent implements OnInit {
 
   formatText(text: string): string {
     return text.replace('\n', '<br />');
+  }
+
+  downloadCSVs() {
+    console.log('Download->>', this.downloadSelection, this.selectedGazettes);
+  }
+
+  get getQntSelected() {
+    if (this.selectedGazettes.length === 0) {
+      return '';
+    }
+
+    return ' (' + this.selectedGazettes.length + ')';
+  }
+
+  qntSelected = 0;
+  allSelected = false;
+  downloadSelection: DownloadSelection = {
+    selectAll: false,
+    gazettes: [],
+  };
+
+  setDownloadSelection(res: Gazette[]) {
+    this.downloadSelection.gazettes = res.map((excerpt) => {
+      if (this.selectedGazettes.includes(excerpt)) {
+        return { ...excerpt, selected: true };
+      }
+      return { ...excerpt, selected: false };
+    });
+  }
+
+  updateDownloadArray(selected: boolean, gazette: SelectedGazette) {
+    if (gazette.selected && !this.selectedGazettes.includes(gazette)) {
+      this.selectedGazettes.push(gazette);
+    } else if (!gazette.selected && this.selectedGazettes.includes(gazette)) {
+      this.selectedGazettes = this.selectedGazettes.filter(
+        (g) => g !== gazette
+      );
+    }
+  }
+
+  updateSelectAll() {
+    this.allSelected = this.downloadSelection.gazettes.every((gazzete) => {
+      gazzete.selected;
+    });
+    this.downloadSelection.gazettes.map((gazette) => {
+      this.updateDownloadArray(gazette.selected, gazette);
+    });
+  }
+
+  someSelected() {
+    if (!this.downloadSelection.gazettes) {
+      return false;
+    }
+    return (
+      this.downloadSelection.gazettes.filter((excerpt) => excerpt.selected)
+        .length > 0 && !this.allSelected
+    );
+  }
+
+  setAllSelected(selected: boolean) {
+    this.allSelected = selected;
+    if (!this.downloadSelection.gazettes) {
+      return;
+    }
+    this.downloadSelection.gazettes.forEach((excerpt) => {
+      excerpt.selected = selected;
+      this.updateDownloadArray(selected, excerpt);
+    });
   }
 }
